@@ -6,9 +6,9 @@ This plugin captures audio from pipewire input sources and process it using liba
 
 It's basically a mix of code taken from the following 3 projects.
 
-https://github.com/abb128/LiveCaptions
-https://github.com/dimtpap/obs-pipewire-audio-capture
-https://github.com/norihiro/obs-text-pthread
+* https://github.com/abb128/LiveCaptions
+* https://github.com/dimtpap/obs-pipewire-audio-capture
+* https://github.com/norihiro/obs-text-pthread
 
 I'm targeting this to work on obs for Fedora 38+.
 
