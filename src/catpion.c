@@ -1,4 +1,4 @@
-/* catpions.c
+/* catpion.c
  *
  * Copyright (C) 2023 by Grillo del Mal
  *
@@ -36,7 +36,7 @@
 #include "line-gen.h"
 
 OBS_DECLARE_MODULE()
-OBS_MODULE_USE_DEFAULT_LOCALE("catpions", "en-US")
+OBS_MODULE_USE_DEFAULT_LOCALE("catpion", "en-US")
 
 static gs_effect_t *textalpha_effect = NULL;
 AprilASRModel model = NULL;

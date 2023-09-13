@@ -4,7 +4,7 @@ include(GNUInstallDirs)
 project(obs-catpion)
 
 set(obs-catpion_SOURCES
-			src/catpions.c
+			src/catpion.c
 			src/line-gen.c
 			src/obs-text-pthread-thread.c
 			src/pipewire-audio.c
