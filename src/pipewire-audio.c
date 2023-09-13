@@ -26,6 +26,8 @@
 
 #include <spa/utils/json.h>
 
+#include "catpion.h"
+
 /* Utilities */
 bool json_object_find(const char *obj, const char *key, char *value, size_t len)
 {
@@ -63,8 +65,8 @@ static void on_process_cb(void *data)
 	struct pw_buffer *b = pw_stream_dequeue_buffer(s->stream);
 
 	if (!b) {
-		if(s->session) {
-	        aas_flush(s->session);
+		if(s->acs->session) {
+	        aas_flush(s->acs->session);
 		}
 		return;
 	}
@@ -72,19 +74,19 @@ static void on_process_cb(void *data)
 	struct spa_buffer *buf = b->buffer;
 
     if (buf->datas[0].data == NULL){
-		if(s->session) {
-	        aas_flush(s->session);
+		if(s->acs->session) {
+	        aas_flush(s->acs->session);
 		}
 		goto queue;
     }
 
-	if(s->session) {
+	if(s->acs->session) {
 	    uint32_t n_channels, n_samples;
 
 		n_channels = s->format.info.raw.channels;
 		n_samples = buf->datas[0].chunk->size / sizeof(short);
 
-		aas_feed_pcm16(s->session, (short *)buf->datas[0].data, n_samples);
+		aas_feed_pcm16(s->acs->session, (short *)buf->datas[0].data, n_samples);
 	}
 
 queue:
@@ -187,7 +189,7 @@ static const struct pw_core_events core_events = {
 
 bool obs_pw_audio_instance_init(struct obs_pw_audio_instance *pw, const struct pw_registry_events *registry_events,
 								void *registry_cb_data, bool stream_capture_sink, bool stream_want_driver,
-								AprilASRSession session)
+								struct obs_audio_caption_src *acs)
 {
 	pw->thread_loop = pw_thread_loop_new("PipeWire thread loop", NULL);
 	pw->context = pw_context_new(pw_thread_loop_get_loop(pw->thread_loop), NULL, 0);
@@ -213,7 +215,7 @@ bool obs_pw_audio_instance_init(struct obs_pw_audio_instance *pw, const struct p
 	}
 	pw_registry_add_listener(pw->registry, &pw->registry_listener, registry_events, registry_cb_data);
 
-	pw->audio.session = session;
+	pw->audio.acs = acs;
 	pw->audio.stream =
 		pw_stream_new(
 			pw->core, "OBS",

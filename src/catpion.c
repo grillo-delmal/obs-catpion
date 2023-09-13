@@ -23,6 +23,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include "catpion.h"
+
 #include <obs-module.h>
 #include <util/dstr.h>
 #include <util/platform.h>
@@ -30,17 +32,17 @@
 
 #include <pipewire/pipewire.h>
 #include <pango/pangocairo.h>
+#include <april_api.h>
 
 #include "pipewire-audio.h"
 #include "obs-text-pthread.h"
 #include "line-gen.h"
+#include "model.h"
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("catpion", "en-US")
 
 static gs_effect_t *textalpha_effect = NULL;
-AprilASRModel model = NULL;
-size_t model_sample_rate;
 
 #define tp_data_get_color(s, c) tp_data_get_color2(s, c, c ".alpha")
 static inline uint32_t tp_data_get_color2(obs_data_t *settings, const char *color, const char *alpha)
@@ -78,29 +80,6 @@ struct target_node {
 	struct spa_hook node_listener;
 
 	struct obs_audio_caption_src *acs;
-};
-
-struct obs_audio_caption_src {
-	obs_source_t *source;
-
-	struct tp_source text_src;
-
-	struct obs_pw_audio_instance pw;
-
-	struct {
-		struct obs_pw_audio_default_node_metadata metadata;
-		bool autoconnect;
-		uint32_t node_serial;
-		struct dstr name;
-	} default_info;
-
-	struct obs_pw_audio_proxy_list targets;
-
-	struct dstr target_name;
-	uint32_t connected_serial;
-
-    AprilASRSession session;
-    struct line_generator lg;
 };
 
 void handler(void *data, AprilResultType result, size_t count, const AprilToken *tokens) {
@@ -160,6 +139,7 @@ static void start_streaming(struct obs_audio_caption_src *acs, struct target_nod
 	if (!node || !node->channels) {
 		return;
 	}
+	if (acs->session == NULL) return;
 
 	dstr_copy(&acs->target_name, node->name);
 
@@ -171,7 +151,7 @@ static void start_streaming(struct obs_audio_caption_src *acs, struct target_nod
 		pw_stream_disconnect(acs->pw.audio.stream);
 	}
 
-	if (obs_pw_audio_stream_connect(&acs->pw.audio, node->serial, node->channels, model_sample_rate) == 0) {
+	if (obs_pw_audio_stream_connect(&acs->pw.audio, node->serial, node->channels, acs->model_sample_rate) == 0) {
 		acs->connected_serial = node->serial;
 		blog(LOG_INFO, "[catpion] %p streaming from %u", acs->pw.audio.stream, node->serial);
 	} else {
@@ -403,26 +383,58 @@ static void tp_update(void *data, obs_data_t *settings)
 	pthread_mutex_unlock(&src->config_mutex);
 }
 
-static void *catpion_audio_input_create(obs_data_t *settings, obs_source_t *source)
-{
-	struct obs_audio_caption_src *acs = bzalloc(sizeof(struct obs_audio_caption_src));
+void check_cur_session(struct obs_audio_caption_src *acs) {
     AprilConfig config = { 0 };
     config.handler = handler;
     config.userdata = (void*)acs;
     config.flags = APRIL_CONFIG_FLAG_ASYNC_RT_BIT;
 
-	if(model){
-		line_generator_init(&acs->lg);
-		acs->session = aas_create_session(model, config);
-		blog(LOG_INFO, "[catpion] Captioning session created");
-	}
-	else{
-		acs->session = NULL;
-		blog(LOG_ERROR, "[catpion] No model loaded");
+	size_t model_id = ModelCurID();
+
+	if(acs->session != NULL){
+		if(model_id == acs->model_id){
+			return;
+		}
+
+		aas_free(acs->session);
+		line_generator_finalize(&acs->lg);
+		ModelRelease(acs->model_id);
 	}
 
+	AprilASRModel model = ModelGet(model_id);
+	if(model){
+		acs->model_id = model_id;
+		ModelTake(model_id);
+		line_generator_init(&acs->lg);
+		acs->session = aas_create_session(model, config);
+		acs->model_sample_rate = aam_get_sample_rate(model);
+		blog(
+			LOG_INFO, "[catpion] Captioning session created m[%d] %d %d", 
+			model_id,
+			acs->session,
+			acs->model_sample_rate);
+	}
+
+	if(acs->session != NULL){
+		line_generator_set_label(&acs->lg, &acs->text_src);
+	}
+}
+
+void release_session(struct obs_audio_caption_src *acs){
+	if(acs->session != NULL){
+		aas_free(acs->session);
+		line_generator_finalize(&acs->lg);
+		ModelRelease(acs->model_id);
+	}
+}
+
+static void *catpion_audio_input_create(obs_data_t *settings, obs_source_t *source)
+{
+	struct obs_audio_caption_src *acs = bzalloc(sizeof(struct obs_audio_caption_src));
+	check_cur_session(acs);
+
 	if (!obs_pw_audio_instance_init(
-			&acs->pw, &registry_events, acs, false, true, acs->session)) {
+			&acs->pw, &registry_events, acs, false, true, acs)) {
 		obs_pw_audio_instance_destroy(&acs->pw);
 
 		bfree(acs);
@@ -466,10 +478,6 @@ static void *catpion_audio_input_create(obs_data_t *settings, obs_source_t *sour
 	tp_update(&acs->text_src, settings);
 
 	tp_thread_start(&acs->text_src);
-
-	if(acs->session){
-		line_generator_set_label(&acs->lg, &acs->text_src);
-	}
 
 	return acs;
 }
@@ -628,6 +636,7 @@ static obs_properties_t *catpion_properties(void *data)
 static void catpion_update(void *data, obs_data_t *settings)
 {
 	struct obs_audio_caption_src *acs = data;
+	check_cur_session(acs);
 
 	uint32_t new_node_serial = obs_data_get_int(settings, "TargetId");
 
@@ -697,11 +706,7 @@ static void catpion_destroy(void *data)
 	pthread_mutex_destroy(&acs->text_src.tex_mutex);
 	pthread_mutex_destroy(&acs->text_src.config_mutex);
 
-	if(acs->session){
-		aas_free(acs->session);
-		line_generator_finalize(&acs->lg);
-	}
-
+	release_session(acs);
 	bfree(acs);
 }
 
@@ -872,22 +877,7 @@ bool obs_module_load(void)
 	pw_init(NULL, NULL);
 
     aam_api_init(APRIL_VERSION);
-
-	if (!model) {
-		char *input_model = obs_module_file("april-english-dev-01110_en.april");
-		model = aam_create_model(input_model);
-		if(model == NULL){
-			blog(LOG_INFO, "[catpion] Loading model %s failed!", input_model);
-		}
-		else {
-			model_sample_rate = aam_get_sample_rate(model);
-			blog(LOG_INFO, "[catpion] Model name: %s", aam_get_name(model));
-			blog(LOG_INFO, "[catpion] Model desc: %s", aam_get_description(model));
-			blog(LOG_INFO, "[catpion] Model lang: %s", aam_get_language(model));
-			blog(LOG_INFO, "[catpion] Model samplerate: %ld", model_sample_rate);
-		}
-		bfree(input_model);
-	}
+	InitCatpionUI();
 
 	obs_register_source(&catpion_audio_input);
 
@@ -904,7 +894,6 @@ void obs_module_unload(void)
 		gs_effect_destroy(textalpha_effect);
 		textalpha_effect = NULL;
 	}
-	aam_free(model);
 
 	blog(LOG_INFO, "[catpion] plugin unloaded");
 }
