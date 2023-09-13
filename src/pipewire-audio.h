@@ -22,8 +22,6 @@
 
 #pragma once
 
-#include <april_api.h>
-
 #include <pipewire/pipewire.h>
 #include <pipewire/extensions/metadata.h>
 #include <spa/param/audio/format-utils.h>
@@ -38,7 +36,7 @@ struct obs_pw_audio_stream {
 	struct spa_hook stream_listener;
     struct spa_audio_info format;
 
-    AprilASRSession session;
+    struct obs_audio_caption_src *acs;
 };
 
 /**
@@ -75,7 +73,7 @@ struct obs_pw_audio_instance {
 bool obs_pw_audio_instance_init(
 	struct obs_pw_audio_instance *pw, const struct pw_registry_events *registry_events,
 	void *registry_cb_data, bool stream_capture_sink, bool stream_want_driver,
-	AprilASRSession session);
+	struct obs_audio_caption_src * acs);
 
 /**
  * Destroy a PipeWire instance
