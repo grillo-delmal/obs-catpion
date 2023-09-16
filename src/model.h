@@ -6,7 +6,7 @@ extern "C"
 {
 #endif
 
-#define MAX_MODELS 5
+#define MAX_MODELS 3
 
 void ModelNew(const char* input_model);
 void ModelDelete();
