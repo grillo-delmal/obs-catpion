@@ -34,9 +34,6 @@ dnf -y install
 
 Installing [april-asr](https://github.com/abb128/april-asr) and [onnxruntime](https://github.com/abb128/april-asr#downloading-onnxruntime) is a bit harder... good luck with that ;)
 
-Also run the `prepare.sh` script to download the april model.
-For now it's a hardcoded requirement that I plan to remove ASAP.
-
 ## Build
 
 Just use cmake? or check the [obs-catpion-build](https://github.com/grillo-delmal/obs-catpion-build) project.
@@ -62,15 +59,15 @@ In my case:
 ```sh
 /usr/lib64/obs-plugins/obs-catpion.so
 /usr/share/obs/obs-plugins/obs-catpion
-/usr/share/obs/obs-plugins/obs-catpion/april-english-dev-01110_en.april
 /usr/share/obs/obs-plugins/obs-catpion/textalpha.effect
 ```
 
 ## TODO
 
 * Load april model file on runtime
-  * Add UI to select model file
-  * Make things react on model change
+  * Save selected model settings
+  * Add locale stuff
+* Remove text field from settings
 * Add support for capturing audio from output and apps
 * Package it for Fedora (or at least COPR)
 * CI?

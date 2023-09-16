@@ -33,13 +33,20 @@ CatpionUI::CatpionUI(QWidget *parent)
 
 void CatpionUI::closeEvent(QCloseEvent *event)
 {
-    blog(LOG_INFO, "closeEvent");
-    obs_frontend_save();
+}
+
+static bool push_model_reload(void *data, obs_source_t *source)
+{
+	const char *name = obs_source_get_id(source);
+	if(strcmp(name, "catpion_audio_input") == 0) {
+		obs_source_update(source, NULL);
+	}
+	return true;
 }
 
 void CatpionUI::modelLoadButton()
 {
-    blog(LOG_INFO, "modelLoadButton");
+    //blog(LOG_INFO, "modelLoadButton");
 	
 	QString extensions = QStringLiteral("*.april");;
 	QString filter;
@@ -68,7 +75,6 @@ void CatpionUI::modelLoadButton()
 	QByteArray pathBytes = file.toUtf8();
 	const char *path = pathBytes.constData();
 
-    blog(LOG_INFO, "Loading model: %s", path);
 	ModelNew(path);
 	if(this->cur_model == ModelCurID()) {
 	    blog(LOG_ERROR, "Fail loading model: %s", path);
@@ -78,18 +84,19 @@ void CatpionUI::modelLoadButton()
 	this->cur_model = ModelCurID();
 	ModelTake(this->cur_model);
 
-    blog(LOG_INFO, "Getting info:", path);
 	AprilASRModel model = ModelGet(this->cur_model);
 
 	ui->modelName->setText(aam_get_name(model));
 	ui->modelDesc->setText(aam_get_description(model));
 	ui->modelLang->setText(aam_get_language(model));
 	ui->modelRate->setText(QString("%1").arg(aam_get_sample_rate(model)));
+	
+	obs_enum_sources(push_model_reload, NULL);	
 }
 
 void CatpionUI::modelUnloadButton()
 {
-    blog(LOG_INFO, "modelUnloadButton");
+    //blog(LOG_INFO, "modelUnloadButton");
 	if(ModelGet(this->cur_model) != NULL) ModelRelease(this->cur_model);
 	ModelDelete();
 	this->cur_model = ModelCurID();
@@ -99,6 +106,7 @@ void CatpionUI::modelUnloadButton()
 	ui->modelLang->setText("...");
 	ui->modelRate->setText("...");
 
+	obs_enum_sources(push_model_reload, NULL);	
 }
 
 void CatpionUI::showHideDialog()
@@ -109,28 +117,6 @@ void CatpionUI::showHideDialog()
 	} else {
 		setVisible(false);
 		QTimer::singleShot(250, this, &CatpionUI::hide);
-	}
-}
-
-static void SaveCatpion(obs_data_t *save_data, bool saving, void *)
-{
-	if (saving) {
-		OBSDataAutoRelease obj = obs_data_create();
-
-		obs_data_set_obj(save_data, "catpion", obj);
-	} else {
-		OBSDataAutoRelease obj =
-			obs_data_get_obj(save_data, "catpion");
-
-		if (!obj)
-			obj = obs_data_create();
-	}
-}
-
-static void OBSEvent(enum obs_frontend_event event, void *)
-{
-	if (event == OBS_FRONTEND_EVENT_EXIT) {
-		obs_frontend_save();
 	}
 }
 
@@ -147,9 +133,6 @@ extern "C" void InitCatpionUI()
 		cui->showHideDialog();
 	};
 	obs_frontend_pop_ui_translation();
-
-	obs_frontend_add_save_callback(SaveCatpion, nullptr);
-	obs_frontend_add_event_callback(OBSEvent, nullptr);
 
 	action->connect(action, &QAction::triggered, cb);
 }

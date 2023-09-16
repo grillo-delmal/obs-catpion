@@ -396,9 +396,22 @@ void check_cur_session(struct obs_audio_caption_src *acs) {
 			return;
 		}
 
-		aas_free(acs->session);
+		blog(
+			LOG_INFO, "[catpion] Captioning session released m[%d] %ld %d", 
+			acs->model_id,
+			acs->session,
+			acs->model_sample_rate);
+
+		pw_thread_loop_lock(acs->pw.thread_loop);
 		line_generator_finalize(&acs->lg);
+		aas_flush(acs->session);
+		aas_free(acs->session);
+		acs->session = NULL;
 		ModelRelease(acs->model_id);
+	}
+	else
+	{
+		pw_thread_loop_lock(acs->pw.thread_loop);
 	}
 
 	AprilASRModel model = ModelGet(model_id);
@@ -409,7 +422,7 @@ void check_cur_session(struct obs_audio_caption_src *acs) {
 		acs->session = aas_create_session(model, config);
 		acs->model_sample_rate = aam_get_sample_rate(model);
 		blog(
-			LOG_INFO, "[catpion] Captioning session created m[%d] %d %d", 
+			LOG_INFO, "[catpion] Captioning session created m[%d] %ld %d", 
 			model_id,
 			acs->session,
 			acs->model_sample_rate);
@@ -418,20 +431,22 @@ void check_cur_session(struct obs_audio_caption_src *acs) {
 	if(acs->session != NULL){
 		line_generator_set_label(&acs->lg, &acs->text_src);
 	}
+	pw_thread_loop_unlock(acs->pw.thread_loop);
 }
 
 void release_session(struct obs_audio_caption_src *acs){
 	if(acs->session != NULL){
-		aas_free(acs->session);
 		line_generator_finalize(&acs->lg);
+		aas_flush(acs->session);
+		aas_free(acs->session);
 		ModelRelease(acs->model_id);
+		acs->session = NULL;
 	}
 }
 
 static void *catpion_audio_input_create(obs_data_t *settings, obs_source_t *source)
 {
 	struct obs_audio_caption_src *acs = bzalloc(sizeof(struct obs_audio_caption_src));
-	check_cur_session(acs);
 
 	if (!obs_pw_audio_instance_init(
 			&acs->pw, &registry_events, acs, false, true, acs)) {
@@ -478,6 +493,8 @@ static void *catpion_audio_input_create(obs_data_t *settings, obs_source_t *sour
 	tp_update(&acs->text_src, settings);
 
 	tp_thread_start(&acs->text_src);
+
+	check_cur_session(acs);
 
 	return acs;
 }
