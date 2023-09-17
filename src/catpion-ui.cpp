@@ -29,10 +29,42 @@ CatpionUI::CatpionUI(QWidget *parent)
 			 &CatpionUI::modelUnloadButton);
 	QObject::connect(ui->buttonBox->button(QDialogButtonBox::Close),
 			 &QPushButton::clicked, this, &CatpionUI::hide);
+
+	loadSettings();
 }
 
-void CatpionUI::closeEvent(QCloseEvent *event)
+void CatpionUI::loadSettings()
 {
+	BPtr<char> path = obs_module_get_config_path(
+		obs_current_module(), "catpion_model_path.json");
+	BPtr<char> jsonData = os_quick_read_utf8_file(path);
+	if (!!jsonData) {
+		obs_data_t *data = obs_data_create_from_json(jsonData);
+
+		{
+			const char *model_path = obs_data_get_string(data, "model_path");
+			if(strcmp(model_path, "") != 0) modelLoad(model_path);
+		}
+
+		obs_data_release(data);
+	}
+}
+
+void CatpionUI::saveSettings(const char *model_path)
+{
+	obs_data_t *settings = obs_data_create();
+	obs_data_set_string(settings, "model_path", model_path);
+
+	BPtr<char> modulePath =
+		obs_module_get_config_path(obs_current_module(), "");
+
+	os_mkdirs(modulePath);
+
+	BPtr<char> path = obs_module_get_config_path(
+		obs_current_module(), "catpion_model_path.json");
+	obs_data_save_json_safe(settings, path, "tmp", "bak");
+
+	obs_data_release(settings);
 }
 
 static bool push_model_reload(void *data, obs_source_t *source)
@@ -74,12 +106,17 @@ void CatpionUI::modelLoadButton()
 
 	QByteArray pathBytes = file.toUtf8();
 	const char *path = pathBytes.constData();
+	if(modelLoad(path)) saveSettings(path);
+}
 
+bool CatpionUI::modelLoad(const char * path)
+{
 	ModelNew(path);
 	if(this->cur_model == ModelCurID()) {
 	    blog(LOG_ERROR, "Fail loading model: %s", path);
-		return;
+		return false;
 	}
+	
 	if(ModelGet(this->cur_model) != NULL) ModelRelease(this->cur_model);
 	this->cur_model = ModelCurID();
 	ModelTake(this->cur_model);
@@ -90,8 +127,9 @@ void CatpionUI::modelLoadButton()
 	ui->modelDesc->setText(aam_get_description(model));
 	ui->modelLang->setText(aam_get_language(model));
 	ui->modelRate->setText(QString("%1").arg(aam_get_sample_rate(model)));
-	
+	ui->modelPathValue->setText(path);
 	obs_enum_sources(push_model_reload, NULL);	
+	return true;
 }
 
 void CatpionUI::modelUnloadButton()
@@ -105,8 +143,12 @@ void CatpionUI::modelUnloadButton()
 	ui->modelDesc->setText("...");
 	ui->modelLang->setText("...");
 	ui->modelRate->setText("...");
+	ui->modelPathValue->setText("...");
 
-	obs_enum_sources(push_model_reload, NULL);	
+	saveSettings("");
+
+	obs_enum_sources(push_model_reload, NULL);
+
 }
 
 void CatpionUI::showHideDialog()
