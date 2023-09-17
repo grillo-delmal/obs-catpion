@@ -24,7 +24,7 @@
    <item row="1" column="0" colspan="3">
     <widget class="QGroupBox" name="loadedModel">
      <property name="title">
-      <string>Catpion.Model.Loaded</string>
+      <string>Catpion.Model.GroupBox</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
       <item row="1" column="0">
@@ -95,7 +95,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>Unload Model</string>
+         <string>Catpion.Model.Button.Unload</string>
         </property>
        </widget>
       </item>
@@ -132,7 +132,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Load Model</string>
+      <string>Catpion.Model.Button.Load</string>
      </property>
     </widget>
    </item>

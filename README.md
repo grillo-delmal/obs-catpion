@@ -64,8 +64,6 @@ In my case:
 
 ## TODO
 
-* Load april model file on runtime
-  * Add locale stuff
 * Remove text field from settings
 * Add support for capturing audio from output and apps
 * Package it for Fedora (or at least COPR)
