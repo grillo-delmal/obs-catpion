@@ -274,8 +274,6 @@ void line_generator_break(struct line_generator *lg) {
 }
 
 void line_generator_set_text(struct line_generator *lg) {
-    static char buffer[(AC_LINE_MAX+100)*AC_LINE_COUNT];
-    static int len;
     char *head = &lg->output[0];
     *head = '\0';
 

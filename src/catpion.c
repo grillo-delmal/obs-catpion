@@ -352,7 +352,7 @@ static void tp_update(void *data, obs_data_t *settings)
 	}
 
 	BFREE_IF_NONNULL(src->config.text);
-	src->config.text = bstrdup(obs_data_get_string(settings, "text"));
+	src->config.text = bstrdup("[CC]");
 
 	src->config.color = tp_data_get_color(settings, "color");
 
@@ -403,7 +403,6 @@ void check_cur_session(struct obs_audio_caption_src *acs) {
 			acs->model_sample_rate);
 
 		pw_thread_loop_lock(acs->pw.thread_loop);
-		line_generator_finalize(&acs->lg);
 		aas_flush(acs->session);
 		aas_free(acs->session);
 		acs->session = NULL;
@@ -436,7 +435,6 @@ void check_cur_session(struct obs_audio_caption_src *acs) {
 
 void release_session(struct obs_audio_caption_src *acs){
 	if(acs->session != NULL){
-		line_generator_finalize(&acs->lg);
 		aas_flush(acs->session);
 		aas_free(acs->session);
 		ModelRelease(acs->model_id);
@@ -589,8 +587,6 @@ static obs_properties_t *catpion_properties(void *data)
 	pw_thread_loop_unlock(acs->pw.thread_loop);
 
 	obs_properties_add_font(props, "font", obs_module_text("Font"));
-
-	obs_properties_add_text(props, "text", obs_module_text("Text"), OBS_TEXT_MULTILINE);
 
 	tp_data_add_color(props, "color", obs_module_text("Color"));
 
