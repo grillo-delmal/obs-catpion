@@ -22,6 +22,8 @@ Currently this project depends on the following dependencies to build
 * cairo
 * pangocairo
 * april-asr
+* qt-devel
+* qt-qtbase-gui
 
 Most of them can be installed directly in Fedora
 
@@ -29,10 +31,22 @@ Most of them can be installed directly in Fedora
 dnf -y install
     pipewire-devel \
     obs-studio-devel \
-    "pkgconfig(pango)"
+    "pkgconfig(pango)" \
+    qt-devel \
+    qt6-qtbase-devel \
+    qt6-qttools-devel \
+    qt6-qtbase-gui
 ```
 
-Installing [april-asr](https://github.com/abb128/april-asr) and [onnxruntime](https://github.com/abb128/april-asr#downloading-onnxruntime) is a bit harder... good luck with that ;)
+Installing [april-asr](https://github.com/abb128/april-asr) and [onnxruntime](https://github.com/abb128/april-asr#downloading-onnxruntime) might be a bit harder depending on your environment/system/distro.
+
+In the case of Fedora 38+ you can use the following COPR repo:
+
+```sh
+dnf -y install 'dnf-command(copr)'
+dnf -y copr enable dherrera/onnx
+dnf -y install april-asr-devel
+```
 
 ## Build
 
@@ -46,7 +60,7 @@ cmake --build build
 
 ## Install
 
-You can try to trust
+You can trust this command depending on your distro :)
 
 ```sh
 sudo cmake --install build
@@ -58,7 +72,7 @@ In my case:
 
 ```sh
 /usr/lib64/obs-plugins/obs-catpion.so
-/usr/share/obs/obs-plugins/obs-catpion
+/usr/share/obs/obs-plugins/obs-catpion/locale/en-US.ini
 /usr/share/obs/obs-plugins/obs-catpion/textalpha.effect
 ```
 
