@@ -12,9 +12,11 @@ public:
 	std::unique_ptr<Ui_Catpion> ui;
     CatpionUI(QWidget *parent);
 
-	void closeEvent(QCloseEvent *event) override;
 	void modelLoad();
 	void modelUnload();
+	void saveSettings(const char *);
+	void loadSettings();
+	bool modelLoad(const char * path);
 
 public slots:
     void modelLoadButton();

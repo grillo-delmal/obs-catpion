@@ -65,7 +65,6 @@ In my case:
 ## TODO
 
 * Load april model file on runtime
-  * Save selected model settings
   * Add locale stuff
 * Remove text field from settings
 * Add support for capturing audio from output and apps
