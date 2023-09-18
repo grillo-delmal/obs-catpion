@@ -10,7 +10,31 @@ It's basically a mix of code taken from the following 3 projects.
 * https://github.com/dimtpap/obs-pipewire-audio-capture
 * https://github.com/norihiro/obs-text-pthread
 
-I'm targeting this to work on obs for Fedora 38+.
+I'm targeting this to work on obs-studio on Fedora 38+.
+
+## Install
+
+On Fedora 39+ you can install through the COPR repository. 
+
+```sh
+dnf -y install 'dnf-command(copr)'
+dnf -y copr enable grillo-delmal/obs-catpion
+dnf -y install obs-studio-plugin-catpion
+```
+
+On Fedora 38 you need an extra COPR repository to be able to install the onnxruntime dependency
+
+```sh
+dnf -y install 'dnf-command(copr)'
+dnf -y copr enable dherrera/onnx
+dnf -y copr enable grillo-delmal/obs-catpion
+dnf -y install obs-studio-plugin-catpion
+```
+
+I will consider packaging this properly in Fedora (and maybe Flatpak) when there is a
+stable release of libapril-asr.
+
+If you want to use it in other distro, feel free to build from source and try to mash it up yourself :)
 
 ## Build requirements
 
@@ -40,13 +64,15 @@ dnf -y install
 
 Installing [april-asr](https://github.com/abb128/april-asr) and [onnxruntime](https://github.com/abb128/april-asr#downloading-onnxruntime) might be a bit harder depending on your environment/system/distro.
 
-In the case of Fedora 38+ you can use the following COPR repo:
+In the case of Fedora 39+ I already have a pacakged version of april-asr in a COPR repo:
 
 ```sh
 dnf -y install 'dnf-command(copr)'
-dnf -y copr enable dherrera/onnx
+dnf -y copr enable grillo-delmal/obs-catpion
 dnf -y install april-asr-devel
 ```
+
+In Fedora 38 you will also need to add the `dherrera/onnx` COPR repo.
 
 ## Build
 
@@ -75,12 +101,6 @@ In my case:
 /usr/share/obs/obs-plugins/obs-catpion/locale/en-US.ini
 /usr/share/obs/obs-plugins/obs-catpion/textalpha.effect
 ```
-
-## TODO
-
-* Add support for capturing audio from output and apps
-* Package it for Fedora (or at least COPR)
-* CI?
 
 ## FAQ
 
