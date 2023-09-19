@@ -493,7 +493,9 @@ static void *catpion_audio_input_create(obs_data_t *settings, obs_source_t *sour
 	tp_thread_start(&acs->text_src);
 
 	check_cur_session(acs);
-
+	if(acs->session != NULL){
+		acs->lg.to_stream = obs_data_get_bool(settings, "obs_output_caption_stream");
+	}
 	return acs;
 }
 
@@ -525,6 +527,8 @@ static void catpion_defaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, "shadow_color.alpha", 0xFF);
 
 	obs_data_set_default_bool(settings, "outline_blur_gaussian", true);
+
+	obs_data_set_default_bool(settings, "obs_output_caption_stream", false);
 }
 
 static bool tp_prop_outline_changed(obs_properties_t *props, obs_property_t *property, obs_data_t *settings)
@@ -643,6 +647,8 @@ static obs_properties_t *catpion_properties(void *data)
 	obs_properties_add_int(props, "shadow_x", obs_module_text("Shadow offset x"), -65536, 65536, 1);
 	obs_properties_add_int(props, "shadow_y", obs_module_text("Shadow offset y"), -65536, 65536, 1);
 
+	obs_properties_add_bool(props, "obs_output_caption_stream", obs_module_text("Send captions to stream"));
+
 	return props;
 }
 
@@ -650,6 +656,9 @@ static void catpion_update(void *data, obs_data_t *settings)
 {
 	struct obs_audio_caption_src *acs = data;
 	check_cur_session(acs);
+	if(acs->session != NULL){
+		acs->lg.to_stream = obs_data_get_bool(settings, "obs_output_caption_stream");
+	}
 
 	uint32_t new_node_serial = obs_data_get_int(settings, "TargetId");
 

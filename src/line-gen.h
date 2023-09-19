@@ -67,6 +67,7 @@ struct line_generator {
     int max_text_width;
     struct token_capitalizer tcap;
 
+	bool to_stream;
     struct tp_source *text_src;
 };
 

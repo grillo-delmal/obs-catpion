@@ -36,6 +36,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include <obs-frontend-api.h>
+
 void token_capitalizer_init(struct token_capitalizer *tc) {
     tc->is_english = true;
     tc->previous_was_period = true;
@@ -274,12 +276,28 @@ void line_generator_break(struct line_generator *lg) {
 }
 
 void line_generator_set_text(struct line_generator *lg) {
+    static char last_sent[AC_LINE_MAX+100];
     char *head = &lg->output[0];
     *head = '\0';
 
     for(int i=AC_LINE_COUNT-1; i>=0; i--) {
         struct line *curr = &lg->lines[REL_LINE_IDX(lg->current_line, -i)];
         head += sprintf(head, "%s", curr->text);
+
+        if(i == AC_LINE_COUNT-1){
+            if(lg->to_stream){
+                if(strcmp(last_sent, head) != 0){
+                    blog(LOG_INFO, "[catpion] s: %s", head);
+                    obs_output_t *output = NULL;
+                    output = obs_frontend_get_streaming_output();
+                    if (output) {
+                        obs_output_output_caption_text2(output, head, 2.0);
+                        obs_output_release(output);
+                    }
+                }
+                strncpy(last_sent, head, AC_LINE_MAX+100);
+            }
+        }
 
         if(i != 0) head += sprintf(head, "\n");
         blog(LOG_DEBUG, "[catpion] %d/%d: %s", i, AC_LINE_COUNT-1,curr->text);
