@@ -25,6 +25,9 @@
 #include <sys/types.h>
 #include <april_api.h>
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
 #include <obs-module.h>
 #include "obs-text-pthread.h"
 
@@ -68,10 +71,16 @@ struct line_generator {
     struct token_capitalizer tcap;
 
 	bool to_stream;
+	bool to_osc;
+    int osc_port;
     struct tp_source *text_src;
+
+    int socket_desc;
+    struct sockaddr_in server_addr;
 };
 
 void line_generator_init(struct line_generator *lg);
+void line_generator_end(struct line_generator *lg);
 void line_generator_set_label(struct line_generator *lg, struct tp_source *text_src);
 void line_generator_update(struct line_generator *lg, size_t num_tokens, const AprilToken *tokens);
 void line_generator_finalize(struct line_generator *lg);

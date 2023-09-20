@@ -405,6 +405,7 @@ void check_cur_session(struct obs_audio_caption_src *acs) {
 		pw_thread_loop_lock(acs->pw.thread_loop);
 		aas_flush(acs->session);
 		aas_free(acs->session);
+		line_generator_end(&acs->lg);
 		acs->session = NULL;
 		ModelRelease(acs->model_id);
 	}
@@ -437,6 +438,7 @@ void release_session(struct obs_audio_caption_src *acs){
 	if(acs->session != NULL){
 		aas_flush(acs->session);
 		aas_free(acs->session);
+		line_generator_end(&acs->lg);
 		ModelRelease(acs->model_id);
 		acs->session = NULL;
 	}
@@ -495,6 +497,8 @@ static void *catpion_audio_input_create(obs_data_t *settings, obs_source_t *sour
 	check_cur_session(acs);
 	if(acs->session != NULL){
 		acs->lg.to_stream = obs_data_get_bool(settings, "obs_output_caption_stream");
+		acs->lg.to_osc = obs_data_get_bool(settings, "osc_send");
+		acs->lg.osc_port = obs_data_get_int(settings, "osc_port");
 	}
 	return acs;
 }
@@ -529,6 +533,8 @@ static void catpion_defaults(obs_data_t *settings)
 	obs_data_set_default_bool(settings, "outline_blur_gaussian", true);
 
 	obs_data_set_default_bool(settings, "obs_output_caption_stream", false);
+	obs_data_set_default_bool(settings, "osc_send", false);
+	obs_data_set_default_int(settings, "osc_port", 5050);
 }
 
 static bool tp_prop_outline_changed(obs_properties_t *props, obs_property_t *property, obs_data_t *settings)
@@ -648,6 +654,8 @@ static obs_properties_t *catpion_properties(void *data)
 	obs_properties_add_int(props, "shadow_y", obs_module_text("Shadow offset y"), -65536, 65536, 1);
 
 	obs_properties_add_bool(props, "obs_output_caption_stream", obs_module_text("Send captions to stream"));
+	obs_properties_add_bool(props, "osc_send", obs_module_text("Send captions through OSC locally"));
+	obs_properties_add_int(props, "osc_port", obs_module_text("OSC UDP port"), 0, 65536, 1);
 
 	return props;
 }
@@ -658,6 +666,8 @@ static void catpion_update(void *data, obs_data_t *settings)
 	check_cur_session(acs);
 	if(acs->session != NULL){
 		acs->lg.to_stream = obs_data_get_bool(settings, "obs_output_caption_stream");
+		acs->lg.to_osc = obs_data_get_bool(settings, "osc_send");
+		acs->lg.osc_port = obs_data_get_int(settings, "osc_port");
 	}
 
 	uint32_t new_node_serial = obs_data_get_int(settings, "TargetId");

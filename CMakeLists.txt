@@ -8,6 +8,7 @@ set(obs-catpion_SOURCES
 			src/catpion.c
 			src/model.c
 			src/line-gen.c
+			src/tinyosc.c
 			src/obs-text-pthread-thread.c
 			src/pipewire-audio.c
 			src/catpion-ui.cpp

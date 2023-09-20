@@ -38,6 +38,10 @@
 
 #include <obs-frontend-api.h>
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include "tinyosc.h"
+
 void token_capitalizer_init(struct token_capitalizer *tc) {
     tc->is_english = true;
     tc->previous_was_period = true;
@@ -110,6 +114,14 @@ void line_generator_init(struct line_generator *lg) {
     lg->max_text_width = 50;
 
     token_capitalizer_init(&lg->tcap);
+
+    lg->socket_desc = -1;
+}
+
+void line_generator_end(struct line_generator *lg) {
+    if(lg->socket_desc >= 0){
+        close(lg->socket_desc);
+    }
 }
 
 void line_generator_set_label(struct line_generator *lg, struct tp_source *text_src) {
@@ -285,22 +297,55 @@ void line_generator_set_text(struct line_generator *lg) {
         head += sprintf(head, "%s", curr->text);
 
         if(i == AC_LINE_COUNT-1){
-            if(lg->to_stream){
-                if(strcmp(last_sent, head) != 0){
-                    blog(LOG_INFO, "[catpion] s: %s", head);
-                    obs_output_t *output = NULL;
-                    output = obs_frontend_get_streaming_output();
-                    if (output) {
-                        obs_output_output_caption_text2(output, head, 2.0);
-                        obs_output_release(output);
+            if(lg->to_stream || lg->to_osc){
+                if(strcmp(last_sent, curr->text) != 0){
+                    if(lg->to_stream){
+                        obs_output_t *output = NULL;
+                        output = obs_frontend_get_streaming_output();
+                        if (output) {
+                            obs_output_output_caption_text2(output, head, 2.0);
+                            obs_output_release(output);
+                        }
                     }
+                    if(lg->to_osc){
+                        if(lg->socket_desc < 0){
+                            lg->socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+                            if(lg->socket_desc < 0){
+                                blog(LOG_ERROR, "[catpion] can't open socket, disabling osc internally");
+                                lg->to_osc = false;
+                            }
+
+                            // Set port and IP:
+                            lg->server_addr.sin_family = AF_INET;
+                            lg->server_addr.sin_port = htons(lg->osc_port);
+                            lg->server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+                        }
+                    }
+                    if(lg->to_osc){
+                        static char buffer[AC_LINE_MAX+100];
+                        static int len;
+
+                        lg->server_addr.sin_port = htons(lg->osc_port);
+                        if(lg->socket_desc >= 0 && lg->osc_port > 0) {
+                            int rc;
+                            len = tosc_writeMessage(
+                                buffer, AC_LINE_MAX+100,
+                                "/obs-catpion",
+                                "s",
+                                curr->text
+                            );
+
+                            rc = sendto(lg->socket_desc, buffer, len, 0,
+                                (struct sockaddr*)&(lg->server_addr), sizeof(lg->server_addr));
+                        }
+                    }
+                    strncpy(last_sent, curr->text, AC_LINE_MAX+100);
+                    blog(LOG_DEBUG, "[catpion] %s", curr->text);
                 }
-                strncpy(last_sent, head, AC_LINE_MAX+100);
             }
         }
 
         if(i != 0) head += sprintf(head, "\n");
-        blog(LOG_DEBUG, "[catpion] %d/%d: %s", i, AC_LINE_COUNT-1,curr->text);
     }
 
     if(lg->text_src) tp_edit_text(lg->text_src, lg->output);
