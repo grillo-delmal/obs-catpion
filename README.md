@@ -10,7 +10,9 @@ It's basically a mix of code taken from the following 3 projects.
 * https://github.com/dimtpap/obs-pipewire-audio-capture
 * https://github.com/norihiro/obs-text-pthread
 
-I'm targeting this to work on obs-studio on Fedora 38+.
+I also added this to implement sending text to other local apps through UDP/OSC protocol
+
+* https://github.com/mhroth/tinyosc
 
 ## Install
 
@@ -46,8 +48,7 @@ Currently this project depends on the following dependencies to build
 * cairo
 * pangocairo
 * april-asr
-* qt-devel
-* qt-qtbase-gui
+* qt6-qtbase-devel
 
 Most of them can be installed directly in Fedora
 
@@ -56,10 +57,7 @@ dnf -y install
     pipewire-devel \
     obs-studio-devel \
     "pkgconfig(pango)" \
-    qt-devel \
-    qt6-qtbase-devel \
-    qt6-qttools-devel \
-    qt6-qtbase-gui
+    qt6-qtbase-devel
 ```
 
 Installing [april-asr](https://github.com/abb128/april-asr) and [onnxruntime](https://github.com/abb128/april-asr#downloading-onnxruntime) might be a bit harder depending on your environment/system/distro.
