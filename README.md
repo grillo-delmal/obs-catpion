@@ -109,3 +109,14 @@ No, obs-catpion.
 ### Why Fedora38+ and not XXX?
 
 Because it's what I use and it's easier for me to deploy and test.
+
+### Any similar proyects you can recommend?
+
+Yes! check out obs-localvocal :D
+
+* https://github.com/royshil/obs-localvocal
+
+It works on multiple platforms and has many other different functionalities besides captioning.
+The main difference is that whispercpp is built to process segmented chunks of audio at a time,
+while april can process the audio stream as its being received. Both apporaches have advantages
+and disadvantages depending on what you plan to do.
