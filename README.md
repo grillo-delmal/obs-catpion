@@ -62,15 +62,13 @@ dnf -y install
 
 Installing [april-asr](https://github.com/abb128/april-asr) and [onnxruntime](https://github.com/abb128/april-asr#downloading-onnxruntime) might be a bit harder depending on your environment/system/distro.
 
-In the case of Fedora 39+ I already have a pacakged version of april-asr in a COPR repo:
+In the case of Fedora I already have a pacakged version of april-asr in a COPR repo:
 
 ```sh
 dnf -y install 'dnf-command(copr)'
 dnf -y copr enable grillo-delmal/obs-catpion
 dnf -y install april-asr-devel
 ```
-
-In Fedora 38 you will also need to add the `dherrera/onnx` COPR repo.
 
 ## Build
 
@@ -106,7 +104,7 @@ In my case:
 
 No, obs-catpion.
 
-### Why Fedora38+ and not XXX?
+### Why Fedora and not XXX?
 
 Because it's what I use and it's easier for me to deploy and test.
 
