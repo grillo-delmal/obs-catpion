@@ -27,10 +27,10 @@ dnf -y install obs-studio-plugin-catpion
 On Fedora 38 you need an extra COPR repository to be able to install the onnxruntime dependency
 
 ```sh
-dnf -y install 'dnf-command(copr)'
-dnf -y copr enable dherrera/onnx
-dnf -y copr enable grillo-delmal/obs-catpion
-dnf -y install obs-studio-plugin-catpion
+sudo dnf -y install 'dnf-command(copr)'
+sudo dnf -y copr enable dherrera/onnx
+sudo dnf -y copr enable grillo-delmal/obs-catpion
+sudo dnf -y install obs-studio-plugin-catpion
 ```
 
 I will consider packaging this properly in Fedora (and maybe Flatpak) when there is a
@@ -53,7 +53,7 @@ Currently this project depends on the following dependencies to build
 Most of them can be installed directly in Fedora
 
 ```sh
-dnf -y install
+sudo dnf -y install \
     pipewire-devel \
     obs-studio-devel \
     "pkgconfig(pango)" \
@@ -65,9 +65,9 @@ Installing [april-asr](https://github.com/abb128/april-asr) and [onnxruntime](ht
 In the case of Fedora I already have a pacakged version of april-asr in a COPR repo:
 
 ```sh
-dnf -y install 'dnf-command(copr)'
-dnf -y copr enable grillo-delmal/obs-catpion
-dnf -y install april-asr-devel
+sudo dnf -y install 'dnf-command(copr)'
+sudo dnf -y copr enable grillo-delmal/obs-catpion
+sudo dnf -y install april-asr-devel
 ```
 
 ## Build
