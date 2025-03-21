@@ -20,7 +20,26 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 find_package(PkgConfig)
 
-pkg_search_module(OBS libobs REQUIRED)
+if (NOT TARGET OBS::libobs)
+    find_package(libobs QUIET)
+endif()
+if (NOT TARGET libobs)
+    find_package(LibObs QUIET)
+endif()
+if (TARGET OBS::libobs)
+    set(PLUGIN_LIBS OBS::libobs)
+elseif (TARGET libobs)
+    set(PLUGIN_LIBS libobs)
+else()
+    pkg_check_modules(LIBOBS libobs IMPORTED_TARGET REQUIRED)
+    set(PLUGIN_LIBS PkgConfig::LIBOBS)
+    if (HAVE_WAYLAND)
+        add_definitions(-DENABLE_WAYLAND=1)
+    endif()
+endif()
+
+set(PLUGIN_LIBS ${PLUGIN_LIBS} obs-frontend-api)
+
 pkg_search_module(PIPEWIRE libpipewire-0.3 REQUIRED)
 
 pkg_search_module(Pango pango REQUIRED)
@@ -29,7 +48,6 @@ pkg_search_module(PangoCairo pangocairo REQUIRED)
 pkg_search_module(AprilASR april-asr REQUIRED)
 
 set(obs-catpion_INCLUDES
-	${OBS_INCLUDE_DIRS}
 	${PIPEWIRE_INCLUDE_DIRS}
 	${SPA_INCLUDE_DIRS}
 	${GLib_INCLUDE_DIRS}
@@ -44,7 +62,6 @@ add_definitions(
 )
 
 set(obs-catpion_LIBRARIES
-	${OBS_LIBRARIES}
 	${PIPEWIRE_LIBRARIES}
 	${Pango_LIBRARIES}
 	${Cairo_LIBRARIES}
@@ -73,11 +90,9 @@ foreach(component IN LISTS qt_components)
   endif()
 endforeach()
 
-target_link_libraries(obs-catpion ${obs-catpion_LIBRARIES})
+target_link_libraries(obs-catpion ${obs-catpion_LIBRARIES} ${PLUGIN_LIBS})
 
-include_directories(SYSTEM
-	${obs-catpion_INCLUDES}
-)
+target_include_directories(obs-catpion PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> ${obs-catpion_INCLUDES})
 
 set_target_properties(
   obs-catpion
